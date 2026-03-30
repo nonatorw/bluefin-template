@@ -13,6 +13,10 @@ set -oue pipefail
 #   - Terminal/CLI integration (op command)
 #   - SSH agent integration
 #
+# The Bluefin DX base image ships 1Password pre-installed. We remove it first
+# via rpm to allow a clean reinstall from the official AgileBits repository,
+# ensuring we have the latest version with the correct GPG signatures.
+#
 # CONVENTIONS:
 # - Always clean up repo files after installation
 # - Use dnf5 exclusively (never dnf or yum)
@@ -20,6 +24,11 @@ set -oue pipefail
 ###############################################################################
 
 echo "::group:: Install 1Password CLI + GUI"
+
+# Remove pre-existing 1Password packages from the Bluefin DX base image
+# (rpm layer removal is required — rm -rf cannot remove files from lower layers)
+rpm -e --nodeps 1password 2>/dev/null || true
+rpm -e --nodeps 1password-cli 2>/dev/null || true
 
 # Import GPG key
 rpm --import https://downloads.1password.com/linux/keys/1password.asc
@@ -34,10 +43,6 @@ gpgcheck=1
 repo_gpgcheck=1
 gpgkey=https://downloads.1password.com/linux/keys/1password.asc
 REPO
-
-# Remove any pre-existing 1Password directory that may conflict with the RPM install
-# Bluefin DX may already have /opt/1Password present from the base image
-rm -rf /opt/1Password
 
 # Install 1Password GUI and CLI
 dnf5 install -y 1password 1password-cli
