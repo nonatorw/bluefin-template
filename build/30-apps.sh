@@ -9,31 +9,21 @@ set -oue pipefail
 ### Firefox Developer Edition via official Mozilla tarball
 echo "::group:: Install Firefox Developer Edition"
 
-# Download the latest Firefox Developer Edition tarball from Mozilla
-# -L follows redirects (required — Mozilla URL redirects to CDN)
 curl -L \
     --output /tmp/firefox-devedition.tar.xz \
     "https://download.mozilla.org/?product=firefox-devedition-latest-ssl&os=linux64&lang=en-US"
 
-# Verify the file type
 file /tmp/firefox-devedition.tar.xz
 
-# Extract directly to /usr/lib (always writable during build — /opt is a
-# symlink to /var/opt which is NOT writable during bootc container builds)
 tar -xJf /tmp/firefox-devedition.tar.xz -C /usr/lib
 mv /usr/lib/firefox /usr/lib/firefox-developer-edition
 
-
-# Create symlink in /usr/bin for CLI access
 ln -sf /usr/lib/firefox-developer-edition/firefox /usr/bin/firefox-developer-edition
 
-# Create a tmpfiles.d rule to expose the app at /opt/firefox-developer-edition
-# at runtime (for apps/scripts that expect it under /opt)
 cat > /usr/lib/tmpfiles.d/firefox-developer-edition.conf << 'TMPFILES'
 L  /var/opt/firefox-developer-edition  -  -  -  -  /usr/lib/firefox-developer-edition
 TMPFILES
 
-# Create .desktop file so it appears in the GNOME app launcher
 cat > /usr/share/applications/firefox-developer-edition.desktop << 'DESKTOP'
 [Desktop Entry]
 Name=Firefox Developer Edition
@@ -58,7 +48,6 @@ Name=New Private Window
 Exec=/usr/lib/firefox-developer-edition/firefox --private-window
 DESKTOP
 
-# Clean up temp file
 rm -f /tmp/firefox-devedition.tar.xz
 
 echo "Firefox Developer Edition installed to /usr/lib/firefox-developer-edition"
@@ -80,25 +69,42 @@ echo "::endgroup::"
 ### DroidCam Client via official RPM
 echo "::group:: Install DroidCam Client"
 
-# OPTFIX: DroidCam installs to /opt/droidcam-obs-client which hits the same
-# /var/opt not-writable-during-build problem as 1Password.
-# Replace /opt symlink with a real directory, install, move to /usr/lib, restore.
+# OPTFIX: DroidCam installs to /opt/droidcam-obs-client AND /usr/local/bin/droidcam
+# Both /opt (-> /var/opt) and /usr/local (-> /var/usrlocal) are symlinks to /var
+# in bootc systems, and /var is NOT writable during container builds.
+# We replace both symlinks with real directories, install, move files to immutable
+# paths under /usr, then restore the symlinks.
+
+# Fix /opt
 rm -f /opt
 mkdir -p /opt
 
+# Fix /usr/local
+rm -f /usr/local
+mkdir -p /usr/local/bin
+
 dnf5 install -y "https://droidcam.app/go/droidCam.client.setup.rpm"
 
-# Move installed files to /usr/lib (immutable layer)
+# Move /opt/droidcam-obs-client to /usr/lib
 if [ -d /opt/droidcam-obs-client ]; then
     mkdir -p /usr/lib/droidcam-obs-client
     cp -a /opt/droidcam-obs-client/. /usr/lib/droidcam-obs-client/
+fi
+
+# Move /usr/local/bin/droidcam to /usr/bin
+if [ -f /usr/local/bin/droidcam ]; then
+    cp -a /usr/local/bin/droidcam /usr/bin/droidcam
 fi
 
 # Restore /opt as symlink to /var/opt
 rm -rf /opt
 ln -s /var/opt /opt
 
-# tmpfiles.d rule to recreate the symlink at runtime
+# Restore /usr/local as symlink to /var/usrlocal
+rm -rf /usr/local
+ln -s /var/usrlocal /usr/local
+
+# tmpfiles.d rule to recreate /var/opt/droidcam-obs-client at runtime
 cat > /usr/lib/tmpfiles.d/droidcam.conf << 'TMPFILES'
 L  /var/opt/droidcam-obs-client  -  -  -  -  /usr/lib/droidcam-obs-client
 TMPFILES
