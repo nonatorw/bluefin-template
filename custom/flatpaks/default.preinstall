@@ -4,10 +4,32 @@
 # See: https://docs.flatpak.org/en/latest/flatpak-command-reference.html#flatpak-preinstall
 
 # Web Browsers
-[Flatpak Preinstall org.mozilla.firefox]
+[Flatpak Preinstall org.mozilla.Thunderbird]
 Branch=stable
 
-[Flatpak Preinstall org.mozilla.Thunderbird]
+# Development
+[Flatpak Preinstall com.vscodium.codium]
+Branch=stable
+
+# Office & Productivity
+[Flatpak Preinstall org.libreoffice.LibreOffice]
+Branch=stable
+
+[Flatpak Preinstall md.obsidian.Obsidian]
+Branch=stable
+
+[Flatpak Preinstall com.calibre_ebook.calibre]
+Branch=stable
+
+# Media & Entertainment
+[Flatpak Preinstall com.spotify.Client]
+Branch=stable
+
+[Flatpak Preinstall com.discordapp.Discord]
+Branch=stable
+
+# System Utilities
+[Flatpak Preinstall org.bleachbit.BleachBit]
 Branch=stable
 
 # GNOME Core Applications
@@ -75,7 +97,7 @@ Branch=stable
 [Flatpak Preinstall com.github.rafostar.Clapper]
 Branch=stable
 
-# System Utilities
+# System Management
 [Flatpak Preinstall com.github.tchx84.Flatseal]
 Branch=stable
 

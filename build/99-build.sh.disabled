@@ -41,22 +41,13 @@ cp /ctx/custom/flatpaks/*.preinstall /etc/flatpak/preinstall.d/
 
 echo "::endgroup::"
 
-echo "::group:: Install System Packages"
+echo "::group:: Install Packages"
 
-dnf5 install -y \
-    zsh \
-    eza \
-    chezmoi
+# Install packages using dnf5
+# Example: dnf5 install -y tmux
 
-echo "::endgroup::"
-
-echo "::group:: Set ZSH as Default Shell"
-
-# Make zsh available as a login shell system-wide
-grep -qxF '/usr/bin/zsh' /etc/shells || echo '/usr/bin/zsh' >> /etc/shells
-
-# Set zsh as the default shell for new users (via useradd defaults)
-sed -i 's|^SHELL=.*|SHELL=/usr/bin/zsh|' /etc/default/useradd || true
+# Example using COPR with isolated pattern:
+# copr_install_isolated "ublue-os/staging" package-name
 
 echo "::endgroup::"
 
@@ -64,6 +55,7 @@ echo "::group:: System Configuration"
 
 # Enable/disable systemd services
 systemctl enable podman.socket
+# Example: systemctl mask unwanted-service
 
 echo "::endgroup::"
 
