@@ -2,6 +2,18 @@
 
 set -oue pipefail
 
+###############################################################################
+# 1Password CLI + GUI Installation
+###############################################################################
+# Installs both the 1Password GUI and the 1Password CLI (op) from the official
+# AgileBits RPM repository.
+#
+# Installing via RPM (instead of Flatpak) is required for:
+#   - Browser integration (1Password extension)
+#   - Terminal/CLI integration (op command)
+#   - SSH agent integration
+###############################################################################
+
 echo "::group:: Install 1Password CLI + GUI"
 
 # Import GPG key
@@ -18,12 +30,11 @@ repo_gpgcheck=1
 gpgkey=https://downloads.1password.com/linux/keys/1password.asc
 REPO
 
-# Diagnose what exists at /opt/1Password before attempting install
-echo "--- RPM packages containing 1password ---"
-rpm -qa | grep -i 1password || echo "(none found)"
-echo "--- Contents of /opt/1Password (if exists) ---"
-ls -la /opt/1Password/ 2>/dev/null || echo "(directory does not exist)"
-echo "--- /opt contents ---"
-ls -la /opt/ 2>/dev/null || echo "(empty)"
+# Install 1Password GUI and CLI
+dnf5 install -y 1password 1password-cli
 
+# Clean up repo file (required - repos don't work at runtime in bootc images)
+rm -f /etc/yum.repos.d/1password.repo
+
+echo "1Password CLI + GUI installed successfully"
 echo "::endgroup::"
