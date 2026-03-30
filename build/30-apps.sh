@@ -19,14 +19,14 @@ echo "::group:: Install Firefox Developer Edition"
 # -L follows redirects (required — Mozilla URL redirects to CDN)
 # --output-dir ensures the file lands in /tmp regardless of working directory
 curl -L \
-    --output /tmp/firefox-devedition.tar.bz2 \
+    --output /tmp/firefox-devedition.tar.xz \
     "https://download.mozilla.org/?product=firefox-devedition-latest-ssl&os=linux64&lang=en-US"
 
 # Verify the file is actually a bzip2 archive before extracting
-file /tmp/firefox-devedition.tar.bz2
+file /tmp/firefox-devedition.tar.xz
 
 # Extract to /opt
-tar -xjf /tmp/firefox-devedition.tar.bz2 -C /opt
+tar -xJf /tmp/firefox-devedition.tar.xz -C /opt
 mv /opt/firefox /opt/firefox-developer-edition
 
 # Create symlink for CLI access
@@ -58,7 +58,7 @@ Exec=/opt/firefox-developer-edition/firefox --private-window
 DESKTOP
 
 # Clean up temp file
-rm -f /tmp/firefox-devedition.tar.bz2
+rm -f /tmp/firefox-devedition.tar.xz
 
 echo "Firefox Developer Edition installed to /opt/firefox-developer-edition"
 echo "::endgroup::"
