@@ -1,0 +1,320 @@
+# =============================================================================
+# Development Environment Setup
+# =============================================================================
+# Two-phase setup for the development environment on Bluefin DX.
+#
+# Phase 1 — ujust setup-dev-env-part1:
+#   Installs shell environment and creates directory structure.
+#   Does NOT require authentication. Reboots at the end.
+#
+# Phase 2 — ujust setup-dev-env-part2:
+#   Requires 1Password configured and SSH key added to GitHub.
+#   Run after rebooting from Part 1.
+#   Sub-commands available individually:
+#     ujust setup-dotfiles
+#     ujust setup-java
+#     ujust setup-python
+#     ujust setup-node
+#     ujust setup-ai
+# =============================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 1
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Phase 1 — Shell setup + directory structure (no authentication required)
+[group('Dev Environment')]
+setup-dev-env-part1: _setup-dirs _setup-omz _setup-p10k _setup-zsh-plugins _setup-zsh-default
+    @echo ""
+    @echo "✅ Phase 1 complete. The system will reboot in 10 seconds..."
+    @echo "   After rebooting:"
+    @echo "   1. Configure 1Password and add your SSH key to GitHub"
+    @echo "   2. Run: ujust setup-dev-env-part2"
+    @echo ""
+    sleep 10
+    systemctl reboot
+
+# Create ~/Dev/ directory structure
+[group('Dev Environment')]
+[private]
+_setup-dirs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo ">>> Creating ~/Dev/ directory structure..."
+    mkdir -p \
+        "$HOME/Dev/repos" \
+        "$HOME/Dev/tools/python/pyenv" \
+        "$HOME/Dev/tools/python/poetry" \
+        "$HOME/Dev/tools/node/nvm" \
+        "$HOME/Dev/tools/node/npm" \
+        "$HOME/Dev/tools/java/sdkman" \
+        "$HOME/Dev/tools/java/gradle" \
+        "$HOME/Dev/tools/java/m2" \
+        "$HOME/Dev/tools/ai/claude" \
+        "$HOME/Dev/tools/ai/gemini" \
+        "$HOME/Dev/tools/ai/gemini-config"
+    echo "    Done."
+
+# Install Oh My Zsh
+[group('Dev Environment')]
+[private]
+_setup-omz:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -d "$HOME/.oh-my-zsh" ]]; then
+        echo ">>> Oh My Zsh already installed — skipping"
+        exit 0
+    fi
+    echo ">>> Installing Oh My Zsh..."
+    RUNZSH=no CHSH=no \
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    echo "    Done."
+
+# Install Powerlevel10k theme
+[group('Dev Environment')]
+[private]
+_setup-p10k:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+    if [[ -d "$P10K_DIR" ]]; then
+        echo ">>> Powerlevel10k already installed — skipping"
+        exit 0
+    fi
+    echo ">>> Installing Powerlevel10k..."
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+    echo "    Done."
+
+# Install ZSH plugins via Homebrew
+[group('Dev Environment')]
+[private]
+_setup-zsh-plugins:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo ">>> Installing ZSH plugins via Homebrew..."
+    brew install \
+        zsh-autosuggestions \
+        zsh-syntax-highlighting \
+        zsh-history-substring-search \
+        zsh-completions
+    # Community plugins not available in Homebrew — install via git clone
+    OMZ_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    declare -A git_plugins=(
+        ["zsh-bat"]="https://github.com/fdellwing/zsh-bat"
+        ["zsh-z"]="https://github.com/agkozak/zsh-z"
+    )
+    for plugin in "${!git_plugins[@]}"; do
+        local plugin_dir="$OMZ_CUSTOM/plugins/$plugin"
+        if [[ -d "$plugin_dir" ]]; then
+            echo "    $plugin already installed — skipping"
+        else
+            echo "    Installing $plugin..."
+            git clone --depth=1 "${git_plugins[$plugin]}" "$plugin_dir"
+        fi
+    done
+    echo "    Done."
+
+# Set ZSH as the default shell
+# Bluefin DX ships ZSH at /usr/bin/zsh — no installation needed, just set as default
+[group('Dev Environment')]
+[private]
+_setup-zsh-default:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ZSH_PATH="/usr/bin/zsh"
+    if [[ "$(getent passwd "$USER" | cut -d: -f7)" == "$ZSH_PATH" ]]; then
+        echo ">>> ZSH already set as default shell — skipping"
+        exit 0
+    fi
+    echo ">>> Setting ZSH as default shell..."
+    grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
+    sudo chsh -s "$ZSH_PATH" "$USER"
+    echo "    Done."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 2
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Phase 2 — Dotfiles + dev tools (requires 1Password configured + SSH key on GitHub)
+[group('Dev Environment')]
+setup-dev-env-part2: setup-dotfiles setup-java setup-python setup-node setup-ai
+    @echo ""
+    @echo "✅ Phase 2 complete. Your development environment is ready."
+    @echo "   Open a new terminal to apply all changes."
+    @echo ""
+
+# Apply dotfiles via chezmoi
+[group('Dev Environment')]
+setup-dotfiles:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo ">>> Applying dotfiles via chezmoi..."
+    if chezmoi git status &>/dev/null 2>&1; then
+        echo "    chezmoi already initialised — running apply..."
+        chezmoi apply
+    else
+        chezmoi init --apply git@github.com:nonatorw/chezmoi-dotfiles.git
+    fi
+    echo "    Done."
+
+# Install SDKMan + Java LTS + Maven + Gradle
+[group('Dev Environment')]
+setup-java:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SDKMAN_DIR="$HOME/Dev/tools/java/sdkman"
+
+    # Install SDKMan
+    if [[ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
+        echo ">>> Installing SDKMan..."
+        curl -s "https://get.sdkman.io" | bash
+    else
+        echo ">>> SDKMan already installed — skipping"
+    fi
+
+    # Load SDKMan into current session
+    set +u
+    source "$SDKMAN_DIR/bin/sdkman-init.sh"
+    set -u
+
+    # Java LTS
+    if [[ ! -d "$SDKMAN_DIR/candidates/java/current" ]]; then
+        echo ">>> Installing Java LTS (Temurin)..."
+        sdk install java
+    else
+        echo ">>> Java already installed — skipping"
+    fi
+
+    # Maven
+    if [[ ! -d "$SDKMAN_DIR/candidates/maven/current" ]]; then
+        echo ">>> Installing Maven..."
+        sdk install maven
+    else
+        echo ">>> Maven already installed — skipping"
+    fi
+
+    # Gradle
+    if [[ ! -d "$SDKMAN_DIR/candidates/gradle/current" ]]; then
+        echo ">>> Installing Gradle..."
+        sdk install gradle
+    else
+        echo ">>> Gradle already installed — skipping"
+    fi
+
+    echo "    Java environment ready."
+
+# Install PyEnv + Python (latest stable) + Poetry
+[group('Dev Environment')]
+setup-python:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export PYENV_ROOT="$HOME/Dev/tools/python/pyenv"
+    export POETRY_HOME="$HOME/Dev/tools/python/poetry"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+
+    # Install PyEnv
+    if [[ ! -d "$PYENV_ROOT/.git" ]]; then
+        echo ">>> Installing PyEnv..."
+        git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT"
+        cd "$PYENV_ROOT" && src/configure && make -C src 2>/dev/null; cd - >/dev/null
+    else
+        echo ">>> PyEnv already installed — skipping"
+    fi
+
+    eval "$(pyenv init - bash)"
+
+    # Python latest stable 3.x
+    LATEST=$(pyenv install --list | grep -E "^\s+3\.[0-9]+\.[0-9]+$" | tail -1 | tr -d ' ')
+    if pyenv versions --bare | grep -qx "$LATEST"; then
+        echo ">>> Python $LATEST already installed — setting as global"
+    else
+        echo ">>> Installing Python $LATEST..."
+        pyenv install "$LATEST"
+    fi
+    pyenv global "$LATEST"
+    echo "    Active Python: $(python --version)"
+
+    # Poetry
+    if [[ ! -f "$POETRY_HOME/bin/poetry" ]]; then
+        echo ">>> Installing Poetry..."
+        curl -sSL https://install.python-poetry.org | python3 -
+        "$POETRY_HOME/bin/poetry" config virtualenvs.in-project true
+    else
+        echo ">>> Poetry already installed — skipping"
+    fi
+
+    echo "    Python environment ready."
+
+# Install NVM + Node.js LTS
+[group('Dev Environment')]
+setup-node:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export NVM_DIR="$HOME/Dev/tools/node/nvm"
+    export NPM_CONFIG_CACHE="$HOME/Dev/tools/node/npm"
+
+    # Install NVM
+    if [[ ! -f "$NVM_DIR/nvm.sh" ]]; then
+        echo ">>> Installing NVM..."
+        LATEST=$(curl -s "https://api.github.com/repos/nvm-sh/nvm/releases/latest" \
+            | grep '"tag_name"' | sed -E 's/.*"(v[^"]+)".*/\1/')
+        git clone --depth=1 --branch "$LATEST" https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+    else
+        echo ">>> NVM already installed — skipping"
+    fi
+
+    set +u
+    source "$NVM_DIR/nvm.sh"
+    set -u
+
+    # Node.js LTS
+    if nvm current 2>/dev/null | grep -qv "none\|N/A"; then
+        echo ">>> Node.js already installed: $(nvm current) — skipping"
+    else
+        echo ">>> Installing Node.js LTS..."
+        nvm install --lts
+        nvm alias default 'lts/*'
+        echo "    Node.js: $(node --version)"
+    fi
+
+    echo "    Node.js environment ready."
+
+# Install Claude Code + Gemini CLI
+[group('Dev Environment')]
+setup-ai:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export CLAUDE_HOME="$HOME/Dev/tools/ai/claude"
+    export GEMINI_HOME="$HOME/Dev/tools/ai/gemini"
+
+    # Requires Node.js
+    if ! command -v node &>/dev/null; then
+        echo "ERROR: Node.js not found. Run 'ujust setup-node' first."
+        exit 1
+    fi
+
+    # Claude Code
+    if [[ -f "$CLAUDE_HOME/bin/claude" ]]; then
+        echo ">>> Claude Code already installed — skipping"
+    else
+        echo ">>> Installing Claude Code..."
+        npm install --prefix "$CLAUDE_HOME" @anthropic-ai/claude-code
+    fi
+
+    # Gemini CLI
+    if [[ -f "$GEMINI_HOME/bin/gemini" ]]; then
+        echo ">>> Gemini CLI already installed — skipping"
+    else
+        echo ">>> Installing Gemini CLI..."
+        npm install --prefix "$GEMINI_HOME" @google/gemini-cli
+        mkdir -p "$GEMINI_HOME/bin"
+        ln -sf "../node_modules/.bin/gemini" "$GEMINI_HOME/bin/gemini"
+    fi
+
+    # Gemini config symlink
+    if [[ ! -L "$HOME/.gemini" ]]; then
+        echo ">>> Creating ~/.gemini symlink..."
+        ln -sf "$HOME/Dev/tools/ai/gemini-config" "$HOME/.gemini"
+    fi
+
+    echo "    AI tools ready."
