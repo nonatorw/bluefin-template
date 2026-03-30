@@ -2,33 +2,7 @@
 
 set -oue pipefail
 
-###############################################################################
-# 1Password CLI + GUI Installation
-###############################################################################
-# Installs both the 1Password GUI and the 1Password CLI (op) from the official
-# AgileBits RPM repository.
-#
-# Installing via RPM (instead of Flatpak) is required for:
-#   - Browser integration (1Password extension)
-#   - Terminal/CLI integration (op command)
-#   - SSH agent integration
-#
-# The Bluefin DX base image ships 1Password pre-installed. We remove it first
-# via rpm to allow a clean reinstall from the official AgileBits repository,
-# ensuring we have the latest version with the correct GPG signatures.
-#
-# CONVENTIONS:
-# - Always clean up repo files after installation
-# - Use dnf5 exclusively (never dnf or yum)
-# - Remove repo files to keep the image clean (repos don't work at runtime)
-###############################################################################
-
 echo "::group:: Install 1Password CLI + GUI"
-
-# Remove pre-existing 1Password packages from the Bluefin DX base image
-# (rpm layer removal is required — rm -rf cannot remove files from lower layers)
-rpm -e --nodeps 1password 2>/dev/null || true
-rpm -e --nodeps 1password-cli 2>/dev/null || true
 
 # Import GPG key
 rpm --import https://downloads.1password.com/linux/keys/1password.asc
@@ -44,12 +18,12 @@ repo_gpgcheck=1
 gpgkey=https://downloads.1password.com/linux/keys/1password.asc
 REPO
 
-# Install 1Password GUI and CLI
-dnf5 install -y 1password 1password-cli
-
-# Clean up repo file (required - repos don't work at runtime in bootc images)
-rm -f /etc/yum.repos.d/1password.repo
-
-echo "1Password CLI + GUI installed successfully"
+# Diagnose what exists at /opt/1Password before attempting install
+echo "--- RPM packages containing 1password ---"
+rpm -qa | grep -i 1password || echo "(none found)"
+echo "--- Contents of /opt/1Password (if exists) ---"
+ls -la /opt/1Password/ 2>/dev/null || echo "(directory does not exist)"
+echo "--- /opt contents ---"
+ls -la /opt/ 2>/dev/null || echo "(empty)"
 
 echo "::endgroup::"
