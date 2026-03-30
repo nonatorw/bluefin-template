@@ -23,8 +23,9 @@ file /tmp/firefox-devedition.tar.xz
 tar -xJf /tmp/firefox-devedition.tar.xz -C /usr/lib
 mv /usr/lib/firefox /usr/lib/firefox-developer-edition
 
-# Create symlink for CLI access
-ln -sf /usr/lib/firefox-developer-edition/firefox /usr/local/bin/firefox-developer-edition
+
+# Create symlink in /usr/bin for CLI access
+ln -sf /usr/lib/firefox-developer-edition/firefox /usr/bin/firefox-developer-edition
 
 # Create a tmpfiles.d rule to expose the app at /opt/firefox-developer-edition
 # at runtime (for apps/scripts that expect it under /opt)
