@@ -80,7 +80,28 @@ echo "::endgroup::"
 ### DroidCam Client via official RPM
 echo "::group:: Install DroidCam Client"
 
+# OPTFIX: DroidCam installs to /opt/droidcam-obs-client which hits the same
+# /var/opt not-writable-during-build problem as 1Password.
+# Replace /opt symlink with a real directory, install, move to /usr/lib, restore.
+rm -f /opt
+mkdir -p /opt
+
 dnf5 install -y "https://droidcam.app/go/droidCam.client.setup.rpm"
+
+# Move installed files to /usr/lib (immutable layer)
+if [ -d /opt/droidcam-obs-client ]; then
+    mkdir -p /usr/lib/droidcam-obs-client
+    cp -a /opt/droidcam-obs-client/. /usr/lib/droidcam-obs-client/
+fi
+
+# Restore /opt as symlink to /var/opt
+rm -rf /opt
+ln -s /var/opt /opt
+
+# tmpfiles.d rule to recreate the symlink at runtime
+cat > /usr/lib/tmpfiles.d/droidcam.conf << 'TMPFILES'
+L  /var/opt/droidcam-obs-client  -  -  -  -  /usr/lib/droidcam-obs-client
+TMPFILES
 
 dnf5 install -y v4l2loopback
 
