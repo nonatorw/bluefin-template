@@ -5,32 +5,32 @@ set -oue pipefail
 ###############################################################################
 # Third-Party Applications
 ###############################################################################
-# Installs applications that require external repositories or direct downloads:
-#
-#   - Firefox Developer Edition: official Mozilla tarball, installed to /opt
-#   - LinuxToys: user-friendly tools collection, via official Fedora COPR
-#   - DroidCam Client: use Android phone as webcam, via official RPM
-###############################################################################
 
 ### Firefox Developer Edition via official Mozilla tarball
 echo "::group:: Install Firefox Developer Edition"
 
 # Download the latest Firefox Developer Edition tarball from Mozilla
 # -L follows redirects (required — Mozilla URL redirects to CDN)
-# --output-dir ensures the file lands in /tmp regardless of working directory
 curl -L \
     --output /tmp/firefox-devedition.tar.xz \
     "https://download.mozilla.org/?product=firefox-devedition-latest-ssl&os=linux64&lang=en-US"
 
-# Verify the file is actually a bzip2 archive before extracting
+# Verify the file type
 file /tmp/firefox-devedition.tar.xz
 
-# Extract to /opt
-tar -xJf /tmp/firefox-devedition.tar.xz -C /opt
-mv /opt/firefox /opt/firefox-developer-edition
+# Extract directly to /usr/lib (always writable during build — /opt is a
+# symlink to /var/opt which is NOT writable during bootc container builds)
+tar -xJf /tmp/firefox-devedition.tar.xz -C /usr/lib
+mv /usr/lib/firefox /usr/lib/firefox-developer-edition
 
 # Create symlink for CLI access
-ln -sf /opt/firefox-developer-edition/firefox /usr/local/bin/firefox-developer-edition
+ln -sf /usr/lib/firefox-developer-edition/firefox /usr/local/bin/firefox-developer-edition
+
+# Create a tmpfiles.d rule to expose the app at /opt/firefox-developer-edition
+# at runtime (for apps/scripts that expect it under /opt)
+cat > /usr/lib/tmpfiles.d/firefox-developer-edition.conf << 'TMPFILES'
+L  /var/opt/firefox-developer-edition  -  -  -  -  /usr/lib/firefox-developer-edition
+TMPFILES
 
 # Create .desktop file so it appears in the GNOME app launcher
 cat > /usr/share/applications/firefox-developer-edition.desktop << 'DESKTOP'
@@ -38,8 +38,8 @@ cat > /usr/share/applications/firefox-developer-edition.desktop << 'DESKTOP'
 Name=Firefox Developer Edition
 GenericName=Web Browser
 Comment=Firefox Developer Edition Web Browser
-Exec=/opt/firefox-developer-edition/firefox %u
-Icon=/opt/firefox-developer-edition/browser/chrome/icons/default/default128.png
+Exec=/usr/lib/firefox-developer-edition/firefox %u
+Icon=/usr/lib/firefox-developer-edition/browser/chrome/icons/default/default128.png
 Terminal=false
 Type=Application
 MimeType=text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/rdf+xml;x-scheme-handler/http;x-scheme-handler/https;
@@ -50,17 +50,17 @@ Actions=new-window;new-private-window;
 
 [Desktop Action new-window]
 Name=New Window
-Exec=/opt/firefox-developer-edition/firefox --new-window
+Exec=/usr/lib/firefox-developer-edition/firefox --new-window
 
 [Desktop Action new-private-window]
 Name=New Private Window
-Exec=/opt/firefox-developer-edition/firefox --private-window
+Exec=/usr/lib/firefox-developer-edition/firefox --private-window
 DESKTOP
 
 # Clean up temp file
 rm -f /tmp/firefox-devedition.tar.xz
 
-echo "Firefox Developer Edition installed to /opt/firefox-developer-edition"
+echo "Firefox Developer Edition installed to /usr/lib/firefox-developer-edition"
 echo "::endgroup::"
 
 ### LinuxToys via Fedora COPR
