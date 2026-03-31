@@ -93,7 +93,15 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build/30-apps.sh
-    
+
+### PLYMOUTH — Boot parameters for graphical LUKS unlock screen
+## 'quiet' suppresses kernel log messages during boot
+## 'rhgb' (Red Hat Graphical Boot) activates Plymouth splash screen
+## Without these parameters, the kernel logs replace the Plymouth interface
+RUN rpm-ostree kargs \
+    --append-if-missing=quiet \
+    --append-if-missing=rhgb
+
 ### LINTING
 ## Verify final image and contents are correct.
 RUN bootc container lint

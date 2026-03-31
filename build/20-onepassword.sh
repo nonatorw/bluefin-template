@@ -30,5 +30,18 @@ curl -fLsS --retry 5 \
     https://raw.githubusercontent.com/blue-build/modules/main/modules/bling/installers/1password.sh \
     | bash
 
+echo "::group:: Fix 1Password desktop entry"
+
+# The bling installer places files under /usr/lib/opt/1Password/ and creates
+# a symlink /opt/1Password -> /usr/lib/opt/1Password. However the .desktop
+# file shipped by the RPM points to /opt/1Password/1password which may not
+# resolve correctly in all cases. We normalise to /usr/bin/1password which
+# is always present and correct.
+sed -i 's|Exec=/opt/1Password/1password|Exec=/usr/bin/1password|g' \
+    /usr/share/applications/1password.desktop
+
+echo "    Desktop entry fixed."
+echo "::endgroup::"
+
 echo "1Password CLI + GUI installed successfully"
 echo "::endgroup::"
