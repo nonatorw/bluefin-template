@@ -225,6 +225,12 @@ setup-python:
     export POETRY_HOME="$HOME/Dev/tools/python/poetry"
     export PATH="$PYENV_ROOT/bin:$PATH"
 
+    # Install Python build dependencies via Homebrew
+    # On Bluefin (immutable system), these cannot be installed via dnf at runtime.
+    # PyEnv compiles Python from source and requires these libraries.
+    echo ">>> Installing Python build dependencies via Homebrew..."
+    brew install openssl readline sqlite3 xz zlib bzip2 libffi ncurses
+
     # Install PyEnv
     # GIT_CONFIG_NOSYSTEM and HOME override prevent conflicts with user .gitconfig
     # (e.g. 1Password SSH signing config causes git clone to fail)
@@ -235,6 +241,12 @@ setup-python:
     else
         echo ">>> PyEnv already installed — skipping"
     fi
+
+    # Set build flags so PyEnv finds the Homebrew libraries
+    BREW_PREFIX="$(brew --prefix)"
+    export LDFLAGS="-L$BREW_PREFIX/lib"
+    export CPPFLAGS="-I$BREW_PREFIX/include"
+    export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig"
 
     eval "$(pyenv init - bash)"
 

@@ -69,14 +69,21 @@ echo "::endgroup::"
 
 echo "::group:: GNOME Default Settings"
 
-# Activate numpad by default on login
-# Without this, GNOME disables the numpad on every boot
+# Activate numpad by default on login.
+# dconf update cannot run during container build (no D-Bus available).
+# Writing the keyfile directly is the correct approach for bootc images.
+# On first login, GNOME reads /etc/dconf/db/local.d/ and applies these defaults.
 mkdir -p /etc/dconf/db/local.d/
 cat > /etc/dconf/db/local.d/01-keyboard << 'DCONF'
 [org/gnome/desktop/peripherals/keyboard]
 numlock-state=true
 DCONF
-dconf update
+
+# Profile file tells GNOME to read from the local db
+cat > /etc/dconf/profile/user << 'PROFILE'
+user-db:user
+system-db:local
+PROFILE
 
 echo "::endgroup::"
 
