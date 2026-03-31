@@ -76,8 +76,10 @@ echo "::group:: GNOME Default Settings"
 # dconf update cannot run during container build (no D-Bus available).
 # Writing the keyfile directly is the correct approach for bootc images.
 # On first login, GNOME reads /etc/dconf/db/local.d/ and applies these defaults.
-mkdir -p /etc/dconf/db/local.d/
-cat > /etc/dconf/db/local.d/01-keyboard << 'DCONF'
+# Write dconf defaults to /usr/etc — correct location for immutable systems
+# /etc/dconf is mutable at runtime; /usr/etc is part of the immutable image
+mkdir -p /usr/etc/dconf/db/local.d/
+cat > /usr/etc/dconf/db/local.d/01-keyboard << 'DCONF'
 [org/gnome/desktop/peripherals/keyboard]
 numlock-state=true
 
@@ -90,13 +92,15 @@ command='ptyxis'
 name='Terminal'
 DCONF
 
-# Add local db to dconf profile if not already present.
-# We read the original Bluefin profile from /usr/etc/dconf/profile/user
-# and append system-db:local only if it is not already there.
-# This preserves all existing Bluefin profile entries (e.g. ibus).
-if ! grep -q "system-db:local" /usr/etc/dconf/profile/user 2>/dev/null; then
-    cp /usr/etc/dconf/profile/user /etc/dconf/profile/user
-    echo "system-db:local" >> /etc/dconf/profile/user
+# Add local db to dconf profile
+# Append to existing profile if present, otherwise create it
+mkdir -p /usr/etc/dconf/profile/
+if [[ -f /usr/etc/dconf/profile/user ]]; then
+    grep -q "system-db:local" /usr/etc/dconf/profile/user         || echo "system-db:local" >> /usr/etc/dconf/profile/user
+else
+    printf "user-db:user
+system-db:local
+" > /usr/etc/dconf/profile/user
 fi
 
 echo "::endgroup::"
