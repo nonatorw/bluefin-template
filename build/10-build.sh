@@ -122,4 +122,10 @@ echo "::endgroup::"
 # Restore default glob behavior
 shopt -u nullglob
 
+# Clean up runtime and var directories left by dnf5
+# These are flagged by bootc container lint as they should not persist in the image
+rm -rf /var/lib/dnf/repos
+rm -rf /run/dnf
+rm -rf /run/rpm-ostree
+
 echo "Custom build complete!"
