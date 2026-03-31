@@ -98,9 +98,11 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 ## 'quiet' suppresses kernel log messages during boot
 ## 'rhgb' (Red Hat Graphical Boot) activates Plymouth splash screen
 ## Without these parameters, the kernel logs replace the Plymouth interface
-RUN rpm-ostree kargs \
-    --append-if-missing=quiet \
-    --append-if-missing=rhgb
+## kargs.d is the correct way to set default boot parameters in a bootc image —
+## rpm-ostree kargs only works on a booted system, not during image build.
+RUN mkdir -p /usr/lib/bootc/kargs.d && \
+    printf '[kargs]\nargs = ["quiet", "rhgb"]\n' \
+    > /usr/lib/bootc/kargs.d/plymouth.toml
 
 ### LINTING
 ## Verify final image and contents are correct.
