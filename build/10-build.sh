@@ -80,13 +80,24 @@ mkdir -p /etc/dconf/db/local.d/
 cat > /etc/dconf/db/local.d/01-keyboard << 'DCONF'
 [org/gnome/desktop/peripherals/keyboard]
 numlock-state=true
+
+[org/gnome/settings-daemon/plugins/media-keys]
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']
+
+[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0]
+binding='<Super>t'
+command='ptyxis'
+name='Terminal'
 DCONF
 
-# Profile file tells GNOME to read from the local db
-cat > /etc/dconf/profile/user << 'PROFILE'
-user-db:user
-system-db:local
-PROFILE
+# Add local db to dconf profile if not already present.
+# We read the original Bluefin profile from /usr/etc/dconf/profile/user
+# and append system-db:local only if it is not already there.
+# This preserves all existing Bluefin profile entries (e.g. ibus).
+if ! grep -q "system-db:local" /usr/etc/dconf/profile/user 2>/dev/null; then
+    cp /usr/etc/dconf/profile/user /etc/dconf/profile/user
+    echo "system-db:local" >> /etc/dconf/profile/user
+fi
 
 echo "::endgroup::"
 
