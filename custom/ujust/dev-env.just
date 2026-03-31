@@ -84,7 +84,7 @@ _setup-p10k:
         exit 0
     fi
     echo ">>> Installing Powerlevel10k..."
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+    GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
     echo "    Done."
 
 # Install ZSH plugins via Homebrew + git clone
@@ -110,7 +110,7 @@ _setup-zsh-plugins:
         echo "    zsh-bat already installed — skipping"
     else
         echo "    Installing zsh-bat..."
-        git clone --depth=1 https://github.com/fdellwing/zsh-bat.git \
+        GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git clone --depth=1 https://github.com/fdellwing/zsh-bat.git \
             "$OMZ_CUSTOM/plugins/zsh-bat"
     fi
 
@@ -119,7 +119,7 @@ _setup-zsh-plugins:
         echo "    zsh-z already installed — skipping"
     else
         echo "    Installing zsh-z..."
-        git clone --depth=1 https://github.com/agkozak/zsh-z.git \
+        GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git clone --depth=1 https://github.com/agkozak/zsh-z.git \
             "$OMZ_CUSTOM/plugins/zsh-z"
     fi
 
@@ -149,7 +149,7 @@ _setup-zsh-default:
 
 # Phase 2 — Dotfiles + dev tools (requires 1Password configured + SSH key on GitHub)
 [group('Dev Environment')]
-setup-dev-env-part2: setup-dotfiles setup-java setup-python setup-node setup-ai
+setup-dev-env-part2: setup-java setup-python setup-node setup-ai setup-dotfiles
     @echo ""
     @echo "✅ Phase 2 complete. Your development environment is ready."
     @echo "   Open a new terminal to apply all changes."
@@ -226,9 +226,11 @@ setup-python:
     export PATH="$PYENV_ROOT/bin:$PATH"
 
     # Install PyEnv
+    # GIT_CONFIG_NOSYSTEM and HOME override prevent conflicts with user .gitconfig
+    # (e.g. 1Password SSH signing config causes git clone to fail)
     if [[ ! -d "$PYENV_ROOT/.git" ]]; then
         echo ">>> Installing PyEnv..."
-        git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT"
+        GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT"
         cd "$PYENV_ROOT" && src/configure && make -C src 2>/dev/null; cd - >/dev/null
     else
         echo ">>> PyEnv already installed — skipping"
@@ -273,7 +275,7 @@ setup-node:
         echo ">>> Installing NVM..."
         LATEST_NVM="$(curl -s "https://api.github.com/repos/nvm-sh/nvm/releases/latest" \
             | grep '"tag_name"' | sed -E 's/.*"(v[^"]+)".*/\1/')"
-        git clone --depth=1 --branch "$LATEST_NVM" https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+        GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git clone --depth=1 --branch "$LATEST_NVM" https://github.com/nvm-sh/nvm.git "$NVM_DIR"
     else
         echo ">>> NVM already installed — skipping"
     fi
