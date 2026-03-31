@@ -46,7 +46,8 @@ echo "::group:: Install System Packages"
 dnf5 install -y \
     zsh \
     eza \
-    chezmoi
+    chezmoi \
+    git
 
 echo "::endgroup::"
 
@@ -64,6 +65,8 @@ echo "::group:: System Configuration"
 
 # Enable/disable systemd services
 systemctl enable podman.socket
+
+
 
 echo "::endgroup::"
 
