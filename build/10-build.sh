@@ -67,6 +67,20 @@ systemctl enable podman.socket
 
 echo "::endgroup::"
 
+echo "::group:: Configure Plymouth"
+
+# Ensure Plymouth graphical boot theme is active.
+# Required for the graphical disk unlock prompt (LUKS) to appear at boot.
+# The 'bgrt' theme uses the system firmware logo — consistent with Bluefin DX.
+plymouth-set-default-theme bgrt
+
+# Regenerate initramfs to embed the Plymouth theme.
+# In bootc/OCI images the initramfs must be rebuilt at image build time —
+# it cannot be regenerated at runtime on an immutable system.
+dracut --regenerate-all --force
+
+echo "::endgroup::"
+
 # Restore default glob behavior
 shopt -u nullglob
 
