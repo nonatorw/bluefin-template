@@ -76,10 +76,10 @@ echo "::group:: GNOME Default Settings"
 # dconf update cannot run during container build (no D-Bus available).
 # Writing the keyfile directly is the correct approach for bootc images.
 # On first login, GNOME reads /etc/dconf/db/local.d/ and applies these defaults.
-# Write dconf defaults to /usr/etc — correct location for immutable systems
-# /etc/dconf is mutable at runtime; /usr/etc is part of the immutable image
-mkdir -p /usr/etc/dconf/db/local.d/
-cat > /usr/etc/dconf/db/local.d/01-keyboard << 'DCONF'
+# Write dconf defaults to /etc/dconf/
+# These files are created during build and become part of the immutable image
+mkdir -p /etc/dconf/db/local.d/
+cat > /etc/dconf/db/local.d/01-keyboard << 'DCONF'
 [org/gnome/desktop/peripherals/keyboard]
 numlock-state=true
 
@@ -94,13 +94,13 @@ DCONF
 
 # Add local db to dconf profile
 # Append to existing profile if present, otherwise create it
-mkdir -p /usr/etc/dconf/profile/
-if [[ -f /usr/etc/dconf/profile/user ]]; then
-    grep -q "system-db:local" /usr/etc/dconf/profile/user         || echo "system-db:local" >> /usr/etc/dconf/profile/user
+mkdir -p /etc/dconf/profile/
+if [[ -f /etc/dconf/profile/user ]]; then
+    grep -q "system-db:local" /etc/dconf/profile/user         || echo "system-db:local" >> /etc/dconf/profile/user
 else
     printf "user-db:user
 system-db:local
-" > /usr/etc/dconf/profile/user
+" > /etc/dconf/profile/user
 fi
 
 echo "::endgroup::"
@@ -124,7 +124,7 @@ shopt -u nullglob
 
 # Clean up runtime and var directories left by dnf5
 # These are flagged by bootc container lint as they should not persist in the image
-rm -rf /var/lib/dnf/repos
+rm -rf /var/lib/dnf
 rm -rf /run/dnf
 rm -rf /run/rpm-ostree
 
