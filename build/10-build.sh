@@ -67,6 +67,19 @@ systemctl enable podman.socket
 
 echo "::endgroup::"
 
+echo "::group:: GNOME Default Settings"
+
+# Activate numpad by default on login
+# Without this, GNOME disables the numpad on every boot
+mkdir -p /etc/dconf/db/local.d/
+cat > /etc/dconf/db/local.d/01-keyboard << 'DCONF'
+[org/gnome/desktop/peripherals/keyboard]
+numlock-state=true
+DCONF
+dconf update
+
+echo "::endgroup::"
+
 echo "::group:: Configure Plymouth"
 
 # Ensure Plymouth graphical boot theme is active.
