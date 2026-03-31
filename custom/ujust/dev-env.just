@@ -85,33 +85,42 @@ _setup-p10k:
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
     echo "    Done."
 
-# Install ZSH plugins via Homebrew
+# Install ZSH plugins via Homebrew + git clone
 [group('Dev Environment')]
 [private]
 _setup-zsh-plugins:
     #!/usr/bin/env bash
     set -euo pipefail
+    OMZ_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
     echo ">>> Installing ZSH plugins via Homebrew..."
     brew install \
         zsh-autosuggestions \
         zsh-syntax-highlighting \
         zsh-history-substring-search \
         zsh-completions
-    # Community plugins not available in Homebrew — install via git clone
-    OMZ_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    declare -A git_plugins=(
-        ["zsh-bat"]="https://github.com/fdellwing/zsh-bat"
-        ["zsh-z"]="https://github.com/agkozak/zsh-z"
-    )
-    for plugin in "${!git_plugins[@]}"; do
-        local plugin_dir="$OMZ_CUSTOM/plugins/$plugin"
-        if [[ -d "$plugin_dir" ]]; then
-            echo "    $plugin already installed — skipping"
-        else
-            echo "    Installing $plugin..."
-            git clone --depth=1 "${git_plugins[$plugin]}" "$plugin_dir"
-        fi
-    done
+    echo "    Homebrew plugins done."
+
+    echo ">>> Installing ZSH plugins via git clone..."
+
+    # zsh-bat
+    if [[ -d "$OMZ_CUSTOM/plugins/zsh-bat" ]]; then
+        echo "    zsh-bat already installed — skipping"
+    else
+        echo "    Installing zsh-bat..."
+        git clone --depth=1 https://github.com/fdellwing/zsh-bat.git \
+            "$OMZ_CUSTOM/plugins/zsh-bat"
+    fi
+
+    # zsh-z
+    if [[ -d "$OMZ_CUSTOM/plugins/zsh-z" ]]; then
+        echo "    zsh-z already installed — skipping"
+    else
+        echo "    Installing zsh-z..."
+        git clone --depth=1 https://github.com/agkozak/zsh-z.git \
+            "$OMZ_CUSTOM/plugins/zsh-z"
+    fi
+
     echo "    Done."
 
 # Set ZSH as the default shell
@@ -122,7 +131,8 @@ _setup-zsh-default:
     #!/usr/bin/env bash
     set -euo pipefail
     ZSH_PATH="/usr/bin/zsh"
-    if [[ "$(getent passwd "$USER" | cut -d: -f7)" == "$ZSH_PATH" ]]; then
+    CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+    if [[ "$CURRENT_SHELL" == "$ZSH_PATH" ]]; then
         echo ">>> ZSH already set as default shell — skipping"
         exit 0
     fi
@@ -224,14 +234,14 @@ setup-python:
     eval "$(pyenv init - bash)"
 
     # Python latest stable 3.x
-    LATEST=$(pyenv install --list | grep -E "^\s+3\.[0-9]+\.[0-9]+$" | tail -1 | tr -d ' ')
-    if pyenv versions --bare | grep -qx "$LATEST"; then
-        echo ">>> Python $LATEST already installed — setting as global"
+    LATEST_PY="$(pyenv install --list | grep -E '^\s+3\.[0-9]+\.[0-9]+$' | tail -1 | tr -d ' ')"
+    if pyenv versions --bare | grep -qx "$LATEST_PY"; then
+        echo ">>> Python $LATEST_PY already installed — setting as global"
     else
-        echo ">>> Installing Python $LATEST..."
-        pyenv install "$LATEST"
+        echo ">>> Installing Python $LATEST_PY..."
+        pyenv install "$LATEST_PY"
     fi
-    pyenv global "$LATEST"
+    pyenv global "$LATEST_PY"
     echo "    Active Python: $(python --version)"
 
     # Poetry
@@ -256,9 +266,9 @@ setup-node:
     # Install NVM
     if [[ ! -f "$NVM_DIR/nvm.sh" ]]; then
         echo ">>> Installing NVM..."
-        LATEST=$(curl -s "https://api.github.com/repos/nvm-sh/nvm/releases/latest" \
-            | grep '"tag_name"' | sed -E 's/.*"(v[^"]+)".*/\1/')
-        git clone --depth=1 --branch "$LATEST" https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+        LATEST_NVM="$(curl -s "https://api.github.com/repos/nvm-sh/nvm/releases/latest" \
+            | grep '"tag_name"' | sed -E 's/.*"(v[^"]+)".*/\1/')"
+        git clone --depth=1 --branch "$LATEST_NVM" https://github.com/nvm-sh/nvm.git "$NVM_DIR"
     else
         echo ">>> NVM already installed — skipping"
     fi
@@ -268,8 +278,9 @@ setup-node:
     set -u
 
     # Node.js LTS
-    if nvm current 2>/dev/null | grep -qv "none\|N/A"; then
-        echo ">>> Node.js already installed: $(nvm current) — skipping"
+    CURRENT_NODE="$(nvm current 2>/dev/null || echo 'none')"
+    if [[ "$CURRENT_NODE" != "none" && "$CURRENT_NODE" != "N/A" ]]; then
+        echo ">>> Node.js already installed: $CURRENT_NODE — skipping"
     else
         echo ">>> Installing Node.js LTS..."
         nvm install --lts
