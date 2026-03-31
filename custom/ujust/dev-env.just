@@ -138,7 +138,7 @@ _setup-zsh-default:
     fi
     echo ">>> Setting ZSH as default shell..."
     grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
-    sudo chsh -s "$ZSH_PATH" "$USER"
+    sudo usermod -s "$ZSH_PATH" "$USER"
     echo "    Done."
 
 # ─────────────────────────────────────────────────────────────────────────────
