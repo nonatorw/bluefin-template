@@ -101,7 +101,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 ## kargs.d is the correct way to set default boot parameters in a bootc image —
 ## rpm-ostree kargs only works on a booted system, not during image build.
 RUN mkdir -p /usr/lib/bootc/kargs.d && \
-    printf '[kargs]\nargs = ["quiet", "rhgb"]\n' \
+    printf 'kargs = ["quiet", "rhgb"]\n' \
     > /usr/lib/bootc/kargs.d/plymouth.toml
 
 ### LINTING
