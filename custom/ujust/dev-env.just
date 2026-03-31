@@ -175,9 +175,10 @@ setup-java:
     export SDKMAN_DIR="$HOME/Dev/tools/java/sdkman"
 
     # Install SDKMan
+    # SDKMAN_DIR must be passed via env to the installer — export alone is not enough
     if [[ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
-        echo ">>> Installing SDKMan..."
-        curl -s "https://get.sdkman.io" | bash
+        echo ">>> Installing SDKMan to $SDKMAN_DIR..."
+        curl -s "https://get.sdkman.io" | SDKMAN_DIR="$SDKMAN_DIR" bash
     else
         echo ">>> SDKMan already installed — skipping"
     fi
