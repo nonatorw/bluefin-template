@@ -41,13 +41,15 @@ _setup-dirs:
     #!/usr/bin/env bash
     set -euo pipefail
     echo ">>> Creating ~/Dev/ directory structure..."
+    # Create only directories that are NOT managed by their own installers.
+    # The following are intentionally excluded:
+    #   - sdkman: installer detects existing dir and aborts
+    #   - pyenv:  installer uses git clone, fails on non-empty dir
+    #   - poetry: installer manages its own dir
+    #   - nvm:    installer uses git clone, fails on non-empty dir
     mkdir -p \
         "$HOME/Dev/repos" \
-        "$HOME/Dev/tools/python/pyenv" \
-        "$HOME/Dev/tools/python/poetry" \
-        "$HOME/Dev/tools/node/nvm" \
         "$HOME/Dev/tools/node/npm" \
-        "$HOME/Dev/tools/java/sdkman" \
         "$HOME/Dev/tools/java/gradle" \
         "$HOME/Dev/tools/java/m2" \
         "$HOME/Dev/tools/ai/claude" \
@@ -171,11 +173,13 @@ setup-dotfiles:
 [group('Dev Environment')]
 setup-java:
     #!/usr/bin/env bash
-    set -euo pipefail
+    # SDKMan and its sdk commands use optional/unbound variables internally.
+    # set -u must be disabled for the entire script to avoid spurious failures.
+    set -eo pipefail
     export SDKMAN_DIR="$HOME/Dev/tools/java/sdkman"
 
     # Install SDKMan
-    # SDKMAN_DIR must be passed via env to the installer — export alone is not enough
+    # SDKMAN_DIR must be passed inline to the installer — export alone is not enough
     if [[ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
         echo ">>> Installing SDKMan to $SDKMAN_DIR..."
         curl -s "https://get.sdkman.io" | SDKMAN_DIR="$SDKMAN_DIR" bash
@@ -184,9 +188,7 @@ setup-java:
     fi
 
     # Load SDKMan into current session
-    set +u
     source "$SDKMAN_DIR/bin/sdkman-init.sh"
-    set -u
 
     # Java LTS
     if [[ ! -d "$SDKMAN_DIR/candidates/java/current" ]]; then
@@ -218,7 +220,7 @@ setup-java:
 [group('Dev Environment')]
 setup-python:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -eo pipefail
     export PYENV_ROOT="$HOME/Dev/tools/python/pyenv"
     export POETRY_HOME="$HOME/Dev/tools/python/poetry"
     export PATH="$PYENV_ROOT/bin:$PATH"
@@ -260,7 +262,9 @@ setup-python:
 [group('Dev Environment')]
 setup-node:
     #!/usr/bin/env bash
-    set -euo pipefail
+    # NVM uses optional/unbound variables internally.
+    # set -u must be disabled for the entire script.
+    set -eo pipefail
     export NVM_DIR="$HOME/Dev/tools/node/nvm"
     export NPM_CONFIG_CACHE="$HOME/Dev/tools/node/npm"
 
@@ -274,9 +278,7 @@ setup-node:
         echo ">>> NVM already installed — skipping"
     fi
 
-    set +u
     source "$NVM_DIR/nvm.sh"
-    set -u
 
     # Node.js LTS
     CURRENT_NODE="$(nvm current 2>/dev/null || echo 'none')"
@@ -298,6 +300,13 @@ setup-ai:
     set -euo pipefail
     export CLAUDE_HOME="$HOME/Dev/tools/ai/claude"
     export GEMINI_HOME="$HOME/Dev/tools/ai/gemini"
+    export NVM_DIR="$HOME/Dev/tools/node/nvm"
+
+    # Load NVM to make node available
+    # NVM uses optional variables — disable set -u for this block
+    set +u
+    source "$NVM_DIR/nvm.sh" 2>/dev/null || true
+    set -u
 
     # Requires Node.js
     if ! command -v node &>/dev/null; then
