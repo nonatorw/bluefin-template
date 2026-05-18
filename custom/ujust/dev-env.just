@@ -161,7 +161,7 @@ setup-dotfiles:
     #!/usr/bin/env bash
     set -euo pipefail
     echo ">>> Applying dotfiles via chezmoi..."
-    if chezmoi git status &>/dev/null 2>&1; then
+    if [[ -d "$HOME/.local/share/chezmoi" ]]; then
         echo "    chezmoi already initialised — running apply..."
         chezmoi apply
     else
