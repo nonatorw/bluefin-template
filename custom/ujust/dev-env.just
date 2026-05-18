@@ -270,6 +270,15 @@ setup-python:
         echo ">>> Poetry already installed — skipping"
     fi
 
+    # UV
+    if [[ ! -f "$HOME/.local/bin/uv" ]]; then
+        echo ">>> Installing uv..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "    uv: $("$HOME/.local/bin/uv" --version)"
+    else
+        echo ">>> uv already installed — skipping"
+    fi
+
     echo "    Python environment ready."
 
 # Install NVM + Node.js LTS
