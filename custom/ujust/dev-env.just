@@ -356,9 +356,11 @@ setup-ai:
     fi
 
     # Gemini config symlink
-    if [[ ! -L "$HOME/.gemini" ]]; then
+    local gemini_target="$HOME/Dev/tools/ai/gemini-config"
+    if [[ "$(readlink -f "$HOME/.gemini" 2>/dev/null)" != "$gemini_target" ]]; then
         echo ">>> Creating ~/.gemini symlink..."
-        ln -sf "$HOME/Dev/tools/ai/gemini-config" "$HOME/.gemini"
+        rm -rf "$HOME/.gemini"
+        ln -sf "$gemini_target" "$HOME/.gemini"
     fi
 
     echo "    AI tools ready."
