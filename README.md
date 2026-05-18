@@ -1,5 +1,11 @@
 # bluefin-template
 
+> **Pending verification:** The `setup-python`, `setup-dotfiles`, and `setup-ai` recipes in
+> `custom/ujust/dev-env.just` were updated (UV installer, chezmoi init detection, `.gemini`
+> symlink check) but have not yet been tested on a live Bluefin machine. See
+> [`docs/superpowers/plans/2026-05-18-uv-awareness.md`](docs/superpowers/plans/2026-05-18-uv-awareness.md)
+> for the full test plan.
+
 A template for building custom bootc operating system images based on the lessons from [Universal Blue](https://universal-blue.org/) and [Bluefin](https://projectbluefin.io). It is designed to be used manually, but is optimized to be bootstraped by GitHub Copilot. After set up you'll have your own custom Linux. 
 
 This template uses the **multi-stage build architecture** from , combining resources from multiple OCI containers for modularity and maintainability. See the [Architecture](#architecture) section below for details.
