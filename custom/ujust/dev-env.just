@@ -356,10 +356,15 @@ setup-ai:
     fi
 
     # Gemini config symlink
-    local gemini_target="$HOME/Dev/tools/ai/gemini-config"
+    gemini_target="$HOME/Dev/tools/ai/gemini-config"
     if [[ "$(readlink -f "$HOME/.gemini" 2>/dev/null)" != "$gemini_target" ]]; then
         echo ">>> Creating ~/.gemini symlink..."
-        rm -rf "$HOME/.gemini"
+        if [[ -L "$HOME/.gemini" ]]; then
+            rm "$HOME/.gemini"
+        elif [[ -e "$HOME/.gemini" ]]; then
+            echo "ERROR: $HOME/.gemini exists and is not a symlink — refusing to overwrite." >&2
+            exit 1
+        fi
         ln -sf "$gemini_target" "$HOME/.gemini"
     fi
 
